@@ -1,5 +1,8 @@
 """Adapter: Rich console presenter."""
 
+from pathlib import Path
+from typing import Optional
+
 from InquirerPy import inquirer
 from rich.console import Console
 from rich.panel import Panel
@@ -14,14 +17,15 @@ from rich.progress import (
 )
 from rich.syntax import Syntax
 from rich.table import Table
-from rich.tree import Tree
 
+from migchain.domain.analyzer import MigrationAnalyzer
 from migchain.domain.models import (
     MigrationPlan,
     MigrationStructure,
     OptimizationResult,
     OptimizationVerification,
 )
+from migchain.domain.scaffolder import ScaffoldRequest
 from migchain.infrastructure.logging import setup_logging
 
 
@@ -71,7 +75,12 @@ class RichPresenter:
         self._console.print(table)
 
     # ::::: Plan :::::
-    def show_plan(self, plan: MigrationPlan, mode: str) -> None:
+    def show_plan(
+        self,
+        plan: MigrationPlan,
+        mode: str,
+        migrations_root: Optional[Path] = None,
+    ) -> None:
         if plan.total_count == 0:
             self._console.print(
                 Panel(
@@ -82,24 +91,27 @@ class RichPresenter:
             )
             return
 
-        inserter_ids = {m.id for m in plan.inserter_migrations}
-
-        tree = Tree(
-            f"[bold]{mode.upper()}[/bold]  [dim]({plan.total_count} migrations)[/dim]",
-        )
-
+        lines = []
         for i, migration in enumerate(plan.all_migrations, 1):
-            is_inserter = migration.id in inserter_ids
-            if is_inserter:
-                tag = "[blue]inserter[/blue]"
-                style = "blue"
-            else:
-                tag = "[green]schema [/green]"
-                style = "green"
+            domain = "unknown"
+            if migrations_root:
+                domain = MigrationAnalyzer.get_migration_domain(
+                    migration,
+                    migrations_root,
+                )
+            short_id = _short_migration_id(migration.id)
+            lines.append(
+                f"  [dim]{i:3d}.[/dim] [cyan]{domain:<14}[/cyan]  {short_id}",
+            )
 
-            tree.add(f"[{style}]{i:3d}.[/{style}] {tag}  {migration.id}")
-
-        self._console.print(tree)
+        content = "\n".join(lines)
+        self._console.print(
+            Panel(
+                content,
+                title=f"[bold]{mode.upper()} ({plan.total_count} migrations)[/bold]",
+                border_style="cyan",
+            ),
+        )
 
     # ::::: Graph :::::
     def show_graph(self, content: str) -> None:
@@ -222,9 +234,58 @@ class RichPresenter:
                 ),
             )
 
+    # ::::: Scaffolding :::::
+    def prompt_scaffold(self, existing_domains: list[str]) -> ScaffoldRequest:
+        scaffold_type: str = inquirer.select(
+            message="What do you want to create?",
+            choices=[
+                {"name": "New domain (schema + directory)", "value": "domain"},
+                {"name": "Table migration", "value": "table"},
+                {"name": "Inserter migration (seed data)", "value": "inserter"},
+                {"name": "Free-form migration", "value": "freeform"},
+            ],
+        ).execute()
+
+        if scaffold_type == "domain":
+            domain: str = inquirer.text(message="Domain name:").execute()
+            return ScaffoldRequest(scaffold_type="domain", domain=domain)
+
+        domain_choices = existing_domains + ["(enter manually)"]
+        selected: str = inquirer.select(
+            message="Domain:",
+            choices=domain_choices,
+        ).execute()
+        if selected == "(enter manually)":
+            selected = inquirer.text(message="Domain name:").execute()
+
+        subdirectory: str = inquirer.text(
+            message="Subdirectory (e.g. users, roles):",
+            default="",
+        ).execute()
+
+        description: str = inquirer.text(
+            message="Description (e.g. create-table, add-index):",
+        ).execute()
+
+        return ScaffoldRequest(
+            scaffold_type=scaffold_type,
+            domain=selected,
+            subdirectory=subdirectory,
+            description=description,
+        )
+
+    # ::::: Result :::::
+    def show_result(self, message: str) -> None:
+        self._console.print(
+            Panel(
+                f"[bold green]{message}[/bold green]",
+                border_style="green",
+            ),
+        )
+
     # ::::: Logging :::::
     def info(self, message: str) -> None:
-        self._console.print(f"  [cyan]INFO[/cyan]  {message}", highlight=False)
+        self._console.print(f"  {message}", highlight=False)
 
     def warning(self, message: str) -> None:
         self._console.print(
@@ -243,3 +304,11 @@ class RichPresenter:
                 f"  [dim]DEBUG {message}[/dim]",
                 highlight=False,
             )
+
+
+def _short_migration_id(migration_id: str) -> str:
+    """Strip date prefix from migration ID for cleaner display."""
+    parts = migration_id.split("_", 2)
+    if len(parts) >= 3:
+        return parts[2]
+    return migration_id

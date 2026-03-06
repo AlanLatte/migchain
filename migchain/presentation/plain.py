@@ -2,14 +2,18 @@
 
 import logging
 import textwrap
+from pathlib import Path
+from typing import Optional
 
 from migchain.constants import LOGGER_NAME
+from migchain.domain.analyzer import MigrationAnalyzer
 from migchain.domain.models import (
     MigrationPlan,
     MigrationStructure,
     OptimizationResult,
     OptimizationVerification,
 )
+from migchain.domain.scaffolder import ScaffoldRequest
 from migchain.infrastructure.logging import setup_logging
 
 LOGGER = logging.getLogger(LOGGER_NAME)
@@ -53,17 +57,26 @@ class PlainPresenter:
         LOGGER.info("Migration Structure\n%s", "\n".join(lines))
 
     # ::::: Plan :::::
-    def show_plan(self, plan: MigrationPlan, mode: str) -> None:
+    def show_plan(
+        self,
+        plan: MigrationPlan,
+        mode: str,
+        migrations_root: Optional[Path] = None,
+    ) -> None:
         if plan.total_count == 0:
             LOGGER.info("[%s] Nothing to do", mode.upper())
             return
 
-        inserter_ids = {m.id for m in plan.inserter_migrations}
         lines = []
-
         for i, migration in enumerate(plan.all_migrations, 1):
-            tag = "inserter" if migration.id in inserter_ids else "schema "
-            lines.append(f"  {i:3d}. [{tag}] {migration.id}")
+            domain = "unknown"
+            if migrations_root:
+                domain = MigrationAnalyzer.get_migration_domain(
+                    migration,
+                    migrations_root,
+                )
+            short_id = _short_migration_id(migration.id)
+            lines.append(f"  {i:3d}. [{domain:<14}]  {short_id}")
 
         LOGGER.info(
             "%s (%d migrations)\n%s",
@@ -150,6 +163,43 @@ class PlainPresenter:
                 diff_lines,
             )
 
+    # ::::: Scaffolding :::::
+    def prompt_scaffold(self, existing_domains: list[str]) -> ScaffoldRequest:
+        LOGGER.info("Select migration type:")
+        options = [
+            ("1", "New domain (schema + directory)", "domain"),
+            ("2", "Table migration", "table"),
+            ("3", "Inserter migration (seed data)", "inserter"),
+            ("4", "Free-form migration", "freeform"),
+        ]
+        for num, label, _ in options:
+            LOGGER.info("  %s. %s", num, label)
+
+        choice = input("Choice [1-4]: ").strip()
+        type_map = {o[0]: o[2] for o in options}
+        scaffold_type = type_map.get(choice, "freeform")
+
+        if scaffold_type == "domain":
+            domain = input("Domain name: ").strip()
+            return ScaffoldRequest(scaffold_type="domain", domain=domain)
+
+        if existing_domains:
+            LOGGER.info("Existing domains: %s", ", ".join(existing_domains))
+        domain = input("Domain name: ").strip()
+        subdirectory = input("Subdirectory (e.g. users, roles): ").strip()
+        description = input("Description (e.g. create-table, add-index): ").strip()
+
+        return ScaffoldRequest(
+            scaffold_type=scaffold_type,
+            domain=domain,
+            subdirectory=subdirectory,
+            description=description,
+        )
+
+    # ::::: Result :::::
+    def show_result(self, message: str) -> None:
+        LOGGER.info(message)
+
     # ::::: Logging :::::
     def info(self, message: str) -> None:
         LOGGER.info(message)
@@ -164,3 +214,11 @@ class PlainPresenter:
 
     def debug(self, message: str) -> None:
         LOGGER.debug(message)
+
+
+def _short_migration_id(migration_id: str) -> str:
+    """Strip date prefix from migration ID for cleaner display."""
+    parts = migration_id.split("_", 2)
+    if len(parts) >= 3:
+        return parts[2]
+    return migration_id

@@ -162,7 +162,7 @@ class PostgresBatchTracker:
                     VALUES {values}
                 """)
                 connection.commit()
-            LOGGER.info(
+            LOGGER.debug(
                 "[batch-tracker] Recorded %s batch #%d (%d migrations)",
                 operation,
                 batch,

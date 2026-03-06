@@ -27,6 +27,7 @@ class TestInteractiveFallback:
             rollback_latest=False,
             reload=False,
             optimize=False,
+            new=False,
         )
         result = resolve_operation(args)
 

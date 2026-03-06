@@ -1,6 +1,7 @@
-"""RichPresenter.show_plan -- inserter migration rendering.
+"""RichPresenter.show_plan -- multiple migration rendering.
 
-- inserter migration gets blue 'inserter' tag
+- all migration short IDs appear in output
+- domain column is shown
 """
 # pylint: disable=protected-access
 
@@ -23,14 +24,14 @@ def get_output(presenter):
     return presenter._console.file.getvalue()
 
 
-class TestInserterRendering:
-    """Protects the visual distinction between inserter and schema migrations."""
+class TestMultipleMigrations:
+    """Protects rendering of plans with multiple migrations."""
 
-    def test_inserter_migration_tagged(self):
-        """Protects against inserter migrations not being visually differentiated."""
+    def test_all_migrations_shown(self):
+        """Protects against migrations being omitted from rendered output."""
         presenter = make_presenter()
-        schema = FakeMigration(id="0001_create_users")
-        inserter = FakeMigration(id="0002_seed_data")
+        schema = FakeMigration(id="20250101_01_create_users")
+        inserter = FakeMigration(id="20250101_02_seed_data")
         plan = MigrationPlan(
             schema_migrations=[schema],
             inserter_migrations=[inserter],
@@ -38,5 +39,5 @@ class TestInserterRendering:
         )
         presenter.show_plan(plan, mode="apply")
         output = get_output(presenter)
-        assert "0002_seed_data" in output
-        assert "inserter" in output
+        assert "create_users" in output
+        assert "seed_data" in output

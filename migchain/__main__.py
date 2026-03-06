@@ -34,6 +34,7 @@ def main() -> None:
 
     operation = resolve_operation(args)
     config = build_config(args)
+    presenter = _create_presenter()
 
     schema_comparator = None
     migration_writer = None
@@ -52,7 +53,7 @@ def main() -> None:
         repository=YoyoDiscoveryAdapter(),
         backend=YoyoBackendAdapter(),
         batch_storage=PostgresBatchTracker(),
-        presenter=_create_presenter(),
+        presenter=presenter,
         schema_comparator=schema_comparator,
         migration_writer=migration_writer,
     )
