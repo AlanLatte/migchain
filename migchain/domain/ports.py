@@ -10,6 +10,7 @@ from migchain.domain.models import (
     OptimizationResult,
     OptimizationVerification,
 )
+from migchain.domain.scaffolder import ScaffoldRequest
 
 
 class MigrationRepository(Protocol):
@@ -85,9 +86,17 @@ class Presenter(Protocol):
     # ::::: Structure & Plan :::::
     def show_structure(self, structure: MigrationStructure) -> None: ...
 
-    def show_plan(self, plan: MigrationPlan, mode: str) -> None: ...
+    def show_plan(
+        self,
+        plan: MigrationPlan,
+        mode: str,
+        migrations_root: Optional[Path] = None,
+    ) -> None: ...
 
     def show_graph(self, content: str) -> None: ...
+
+    # ::::: Result :::::
+    def show_result(self, message: str) -> None: ...
 
     # ::::: Execution lifecycle :::::
     def start_execution(self, total: int, tag: str) -> None: ...
@@ -124,6 +133,9 @@ class Presenter(Protocol):
         self,
         verification: OptimizationVerification,
     ) -> None: ...
+
+    # ::::: Scaffolding :::::
+    def prompt_scaffold(self, existing_domains: List[str]) -> ScaffoldRequest: ...
 
 
 class SchemaComparator(Protocol):

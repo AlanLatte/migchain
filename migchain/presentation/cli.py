@@ -21,6 +21,8 @@ try:
         Separator(),
         {"name": "Full reload (rollback + apply)", "value": "reload"},
         {"name": "Optimize dependencies (transitive reduction)", "value": "optimize"},
+        Separator(),
+        {"name": "Create new migration", "value": "new"},
     ]
     _HAS_INQUIRER = True
 except ImportError:  # pragma: no cover
@@ -70,6 +72,11 @@ def create_parser() -> argparse.ArgumentParser:
         "--optimize",
         action="store_true",
         help="Optimize deps via transitive reduction",
+    )
+    ops.add_argument(
+        "--new",
+        action="store_true",
+        help="Create new migration (interactive)",
     )
 
     # ::::: Execution :::::
@@ -136,6 +143,8 @@ def resolve_operation(args: argparse.Namespace) -> str:
         return "reload"
     if args.optimize:
         return "optimize"
+    if args.new:
+        return "new"
     if args.apply:
         return "apply"
 
@@ -153,7 +162,7 @@ def resolve_operation(args: argparse.Namespace) -> str:
 def build_config(args: argparse.Namespace) -> MigrationConfig:
     """Build MigrationConfig from parsed args + env vars."""
     dsn = args.dsn or os.environ.get("DATABASE_URL", "")
-    if not dsn and not args.dry_run and not args.optimize:
+    if not dsn and not args.dry_run and not args.optimize and not args.new:
         raise SystemExit(
             "Database connection string required. "
             "Use --dsn or set DATABASE_URL environment variable.",
@@ -175,7 +184,9 @@ def build_config(args: argparse.Namespace) -> MigrationConfig:
         exclude_domains = {d.strip() for d in args.exclude.split(",")}
 
     migrations_root = Path(args.migrations_dir).resolve()
-    if not migrations_root.is_dir():
+    if args.new:
+        migrations_root.mkdir(parents=True, exist_ok=True)
+    elif not migrations_root.is_dir():
         raise SystemExit(f"Migrations directory not found: {migrations_root}")
 
     return MigrationConfig(

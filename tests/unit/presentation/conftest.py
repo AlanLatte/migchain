@@ -17,6 +17,7 @@ def base_namespace():
         rollback_latest=False,
         reload=False,
         optimize=False,
+        new=False,
         dry_run=False,
         no_inserters=False,
         yes=False,

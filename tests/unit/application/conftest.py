@@ -13,6 +13,7 @@ from migchain.domain.models import (
     OptimizationResult,
     OptimizationVerification,
 )
+from migchain.domain.scaffolder import ScaffoldRequest
 
 
 class FakeRepository:
@@ -161,7 +162,12 @@ class FakePresenter:
     def show_structure(self, structure: MigrationStructure) -> None:
         self.structure_calls.append(structure)
 
-    def show_plan(self, plan: MigrationPlan, mode: str) -> None:
+    def show_plan(
+        self,
+        plan: MigrationPlan,
+        mode: str,
+        _migrations_root: Optional[Path] = None,
+    ) -> None:
         self.plan_calls.append((plan, mode))
 
     def show_graph(self, content: str) -> None:
@@ -215,6 +221,12 @@ class FakePresenter:
         self.infos.append(
             f"Verification: safe={verification.is_safe}",
         )
+
+    def show_result(self, message: str) -> None:
+        self.infos.append(message)
+
+    def prompt_scaffold(self, _existing_domains: list) -> ScaffoldRequest:
+        return ScaffoldRequest(scaffold_type="domain", domain="test")
 
 
 @pytest.fixture

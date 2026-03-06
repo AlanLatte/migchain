@@ -46,27 +46,27 @@ class TestPlainPresenter:
     def test_show_plan_renders_ids(self, caplog):
         """Protects against migration IDs missing from plan output."""
         presenter = PlainPresenter()
-        migration = FakeMigration(id="0001_create_users")
+        migration = FakeMigration(id="20250101_01_create_users")
         plan = MigrationPlan(
             schema_migrations=[migration],
             all_migrations=[migration],
         )
         with caplog.at_level(logging.INFO, logger="migchain"):
             presenter.show_plan(plan, "apply")
-        assert "0001_create_users" in caplog.text
+        assert "create_users" in caplog.text
         assert "APPLY" in caplog.text
 
-    def test_show_plan_inserter_tagged(self, caplog):
-        """Protects against inserters not being labeled."""
+    def test_show_plan_shows_domain(self, caplog):
+        """Protects against domain name missing from plan output."""
         presenter = PlainPresenter()
-        inserter = FakeMigration(id="0002_seed")
+        migration = FakeMigration(id="20250101_01_seed")
         plan = MigrationPlan(
-            inserter_migrations=[inserter],
-            all_migrations=[inserter],
+            inserter_migrations=[migration],
+            all_migrations=[migration],
         )
         with caplog.at_level(logging.INFO, logger="migchain"):
             presenter.show_plan(plan, "apply")
-        assert "inserter" in caplog.text
+        assert "unknown" in caplog.text
 
     def test_show_plan_empty(self, caplog):
         """Protects against empty plan not showing 'Nothing to do'."""

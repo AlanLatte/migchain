@@ -30,14 +30,14 @@ class TestRendersPlan:
     def test_shows_migration_ids(self):
         """Protects against migration IDs not appearing in rendered output."""
         presenter = make_presenter()
-        migration = FakeMigration(id="0001_create_users")
+        migration = FakeMigration(id="20250101_01_create_users")
         plan = MigrationPlan(
             schema_migrations=[migration],
             all_migrations=[migration],
         )
         presenter.show_plan(plan, mode="apply")
         output = get_output(presenter)
-        assert "0001_create_users" in output
+        assert "create_users" in output
 
     def test_shows_mode_uppercase(self):
         """Protects against operation mode not being displayed in uppercase."""

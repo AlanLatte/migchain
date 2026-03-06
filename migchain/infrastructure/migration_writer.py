@@ -64,7 +64,7 @@ class FilesystemMigrationWriter:
                 continue
             self._rewrite_depends(path, new_deps)
             modified.append(str(path))
-            LOGGER.info(
+            LOGGER.debug(
                 "[writer] Updated %s: depends = %s",
                 path.name,
                 sorted(new_deps),

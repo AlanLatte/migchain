@@ -22,6 +22,7 @@ from migchain.domain.ports import (
     Presenter,
     SchemaComparator,
 )
+from migchain.domain.scaffolder import MigrationScaffolder
 
 
 class MigrationService:
@@ -53,6 +54,11 @@ class MigrationService:
     def run(self, operation_mode: str) -> None:
         try:
             self._presenter.setup(2 if self._config.verbose else 1)
+
+            if operation_mode == "new":
+                self._scaffold()
+                return
+
             self._discover_and_load()
             self._build_dependency_graph()
 
@@ -156,7 +162,7 @@ class MigrationService:
             self._presenter.info("Inserters skipped by configuration")
 
         plan = MigrationPlanner.create_plan(pending)
-        self._presenter.show_plan(plan, "apply")
+        self._presenter.show_plan(plan, "apply", self._config.migrations_root)
 
         if plan.total_count == 0:
             return
@@ -173,15 +179,15 @@ class MigrationService:
             batch_number,
             [m.id for m in plan.all_migrations],
         )
-        self._presenter.info(
-            f"Recorded batch #{batch_number} with {plan.total_count} migration(s)",
+        self._presenter.show_result(
+            f"Applied {plan.total_count} migration(s) · Batch #{batch_number}",
         )
 
     # ::::: Rollback all :::::
     def _rollback_all(self) -> None:
         applied = self._backend.applied(self._migrations)
         plan = MigrationPlanner.create_plan(applied)
-        self._presenter.show_plan(plan, "rollback")
+        self._presenter.show_plan(plan, "rollback", self._config.migrations_root)
         self._execute_migrations(plan.all_migrations, "rollback", "rollback")
 
     # ::::: Rollback one :::::
@@ -201,7 +207,7 @@ class MigrationService:
             return
 
         plan = MigrationPlanner.create_plan([candidate])
-        self._presenter.show_plan(plan, "rollback-one")
+        self._presenter.show_plan(plan, "rollback-one", self._config.migrations_root)
         self._execute_migrations([candidate], "rollback", "rollback-one")
 
     # ::::: Rollback latest batch :::::
@@ -240,7 +246,7 @@ class MigrationService:
         to_rollback.reverse()
 
         plan = MigrationPlanner.create_plan(to_rollback)
-        self._presenter.show_plan(plan, "rollback-latest")
+        self._presenter.show_plan(plan, "rollback-latest", self._config.migrations_root)
         self._presenter.info(f"Rolling back batch #{batch_number}")
 
         self._execute_migrations(to_rollback, "rollback", "rollback-latest")
@@ -268,7 +274,7 @@ class MigrationService:
         mode = "rollback" if is_rollback else "apply"
 
         plan = MigrationPlanner.create_plan(list(self._migrations))
-        self._presenter.show_plan(plan, f"dry-run:{mode}")
+        self._presenter.show_plan(plan, f"dry-run:{mode}", self._config.migrations_root)
 
         if self._config.json_plan_output_file:
             json_data = self._export_plan_json(plan)
@@ -417,9 +423,25 @@ class MigrationService:
             migration_id_to_path,
             only_changed,
         )
+        removed = result.original_edge_count - result.reduced_edge_count
         self._presenter.info(
-            f"Optimization complete: {len(modified)} file(s) updated",
+            f"Optimization complete: "
+            f"{removed} redundant edge(s) removed, "
+            f"{len(modified)} file(s) updated, "
+            f"edges {result.original_edge_count} -> {result.reduced_edge_count}",
         )
+
+    # ::::: Scaffolding :::::
+    def _scaffold(self) -> None:
+        existing_domains = MigrationScaffolder.discover_domains(
+            self._config.migrations_root,
+        )
+        request = self._presenter.prompt_scaffold(existing_domains)
+        result = MigrationScaffolder.scaffold(
+            self._config.migrations_root,
+            request,
+        )
+        self._presenter.info(f"Created {result.file_path}")
 
     # ::::: JSON export :::::
     def _export_plan_json(self, plan: MigrationPlan) -> list[dict[str, Any]]:
