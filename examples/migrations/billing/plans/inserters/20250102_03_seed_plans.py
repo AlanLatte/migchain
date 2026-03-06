@@ -7,17 +7,17 @@ __depends__ = {"20250102_01_create_plans"}
 steps = [
     step(
         """
-        INSERT INTO billing.plans (name, price_cents, interval)
-        VALUES
+        insert into billing.plans (name, price_cents, interval)
+        values
             ('free', 0, 'monthly'),
             ('starter', 990, 'monthly'),
             ('pro', 2990, 'monthly'),
             ('enterprise', 9990, 'monthly')
-        ON CONFLICT (name) DO NOTHING
+        on conflict (name) do nothing
         """,
         """
-        DELETE FROM billing.plans
-        WHERE name IN ('free', 'starter', 'pro', 'enterprise')
+        delete from billing.plans
+        where name in ('free', 'starter', 'pro', 'enterprise')
         """,
     ),
 ]

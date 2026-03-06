@@ -2,30 +2,32 @@
 
 from yoyo import step
 
+__depends__ = {"20250101_00_create_schema"}
+
 steps = [
     step(
         """
-        CREATE TABLE IF NOT EXISTS auth.users (
-            id SERIAL PRIMARY KEY,
-            uuid UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-            email VARCHAR(255) NOT NULL UNIQUE,
-            password_hash VARCHAR(255) NOT NULL,
-            is_active BOOLEAN NOT NULL DEFAULT true,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        create table if not exists auth.users (
+            id serial primary key,
+            uuid uuid not null default gen_random_uuid() unique,
+            email varchar(255) not null unique,
+            password_hash varchar(255) not null,
+            is_active boolean not null default true,
+            created_at timestamp not null default current_timestamp,
+            updated_at timestamp not null default current_timestamp
         )
         """,
         """
-        DROP TABLE IF EXISTS auth.users
+        drop table if exists auth.users
         """,
     ),
     step(
         """
-        CREATE INDEX IF NOT EXISTS idx_users_email
-            ON auth.users(email)
+        create index if not exists idx_users_email
+            on auth.users(email)
         """,
         """
-        DROP INDEX IF EXISTS auth.idx_users_email
+        drop index if exists auth.idx_users_email
         """,
     ),
 ]

@@ -54,7 +54,7 @@ migchain --dsn postgresql://user:pass@localhost/mydb \
 # Export dependency graph as Mermaid
 migchain --dsn postgresql://user:pass@localhost/mydb \
          --migrations-dir ./migrations \
-         --show-graph --graph-out deps.mmd
+         --show-graph --graph-out graph.mmd
 
 # Domain filtering uses directory level
 # Level 0 (default): auth, billing

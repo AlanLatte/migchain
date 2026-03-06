@@ -1,13 +1,13 @@
-"""Create roles and user_roles tables."""
+"""Create permissions table."""
 
 from yoyo import step
 
-__depends__ = {"20250101_01_create_users"}
+__depends__ = {"20250101_02_create_roles"}
 
 steps = [
     step(
         """
-        create table if not exists auth.roles (
+        create table if not exists auth.permissions (
             id serial primary key,
             uuid uuid not null default gen_random_uuid() unique,
             name varchar(100) not null unique,
@@ -16,21 +16,21 @@ steps = [
         )
         """,
         """
-        drop table if exists auth.roles
+        drop table if exists auth.permissions
         """,
     ),
     step(
         """
-        create table if not exists auth.user_roles (
-            user_id integer not null references auth.users(id) on delete cascade,
+        create table if not exists auth.role_permissions (
             role_id integer not null references auth.roles(id) on delete cascade,
-            assigned_at timestamp not null default current_timestamp,
+            permission_id integer not null references auth.permissions(id) on delete cascade,
+            granted_at timestamp not null default current_timestamp,
 
-            primary key (user_id, role_id)
+            primary key (role_id, permission_id)
         )
         """,
         """
-        drop table if exists auth.user_roles
+        drop table if exists auth.role_permissions
         """,
     ),
 ]
