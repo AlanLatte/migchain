@@ -10,28 +10,28 @@ __depends__ = {
 steps = [
     step(
         """
-        CREATE TABLE IF NOT EXISTS billing.subscriptions (
-            id SERIAL PRIMARY KEY,
-            uuid UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-            user_id INTEGER NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-            plan_id INTEGER NOT NULL REFERENCES billing.plans(id) ON DELETE RESTRICT,
-            status VARCHAR(20) NOT NULL DEFAULT 'active',
-            started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            expires_at TIMESTAMP,
-            cancelled_at TIMESTAMP
+        create table if not exists billing.subscriptions (
+            id serial primary key,
+            uuid uuid not null default gen_random_uuid() unique,
+            user_id integer not null references auth.users(id) on delete cascade,
+            plan_id integer not null references billing.plans(id) on delete restrict,
+            status varchar(20) not null default 'active',
+            started_at timestamp not null default current_timestamp,
+            expires_at timestamp,
+            cancelled_at timestamp
         )
         """,
         """
-        DROP TABLE IF EXISTS billing.subscriptions
+        drop table if exists billing.subscriptions
         """,
     ),
     step(
         """
-        CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id
-            ON billing.subscriptions(user_id)
+        create index if not exists idx_subscriptions_user_id
+            on billing.subscriptions(user_id)
         """,
         """
-        DROP INDEX IF EXISTS billing.idx_subscriptions_user_id
+        drop index if exists billing.idx_subscriptions_user_id
         """,
     ),
 ]
