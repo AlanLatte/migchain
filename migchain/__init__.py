@@ -1,3 +1,3 @@
 """MigChain — Database Migration Management CLI Tool."""
 
-__version__ = "2.0.2"
+from migchain._version import __version__
