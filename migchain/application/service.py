@@ -436,7 +436,17 @@ class MigrationService:
         existing_domains = MigrationScaffolder.discover_domains(
             self._config.migrations_root,
         )
-        request = self._presenter.prompt_scaffold(existing_domains)
+        domain_subdirs = {
+            d: MigrationScaffolder.discover_subdirectories(
+                self._config.migrations_root,
+                d,
+            )
+            for d in existing_domains
+        }
+        request = self._presenter.prompt_scaffold(
+            existing_domains,
+            domain_subdirs,
+        )
         result = MigrationScaffolder.scaffold(
             self._config.migrations_root,
             request,

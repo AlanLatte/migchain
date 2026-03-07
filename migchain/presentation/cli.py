@@ -159,6 +159,45 @@ def resolve_operation(args: argparse.Namespace) -> str:
     return result
 
 
+_DB_OPERATIONS = {"apply", "rollback", "rollback-one", "rollback-latest", "reload"}
+
+
+def resolve_environment(args: argparse.Namespace, operation: str) -> None:
+    """Prompt for testing/gw settings when running a DB operation interactively."""
+    if not _HAS_INQUIRER:
+        return
+    if operation not in _DB_OPERATIONS:
+        return
+    if args.testing or args.dry_run:
+        return
+
+    env: str = inquirer.select(
+        message="Environment:",
+        choices=[
+            {"name": "Production", "value": "production"},
+            {"name": "Testing (single DB)", "value": "testing"},
+            {"name": "Testing (with gateway DBs)", "value": "testing-gw"},
+        ],
+        default="production",
+    ).execute()
+
+    if env == "testing":
+        args.testing = True
+    elif env == "testing-gw":
+        args.testing = True
+        gw_input: str = inquirer.text(
+            message="Number of gateway databases:",
+            default="4",
+        ).execute()
+        args.gw_count = int(gw_input)
+        gw_template: str = inquirer.text(
+            message="Gateway DB name template ({i} = index):",
+            default="test_db__gw{i}",
+        ).execute()
+        if gw_template != "test_db__gw{i}":
+            args.gw_template = gw_template
+
+
 def build_config(args: argparse.Namespace) -> MigrationConfig:
     """Build MigrationConfig from parsed args + env vars."""
     dsn = args.dsn or os.environ.get("DATABASE_URL", "")

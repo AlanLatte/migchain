@@ -6,7 +6,12 @@ from migchain.infrastructure.batch_tracker import PostgresBatchTracker
 from migchain.infrastructure.migration_writer import FilesystemMigrationWriter
 from migchain.infrastructure.yoyo_backend import YoyoBackendAdapter
 from migchain.infrastructure.yoyo_discovery import YoyoDiscoveryAdapter
-from migchain.presentation.cli import build_config, create_parser, resolve_operation
+from migchain.presentation.cli import (
+    build_config,
+    create_parser,
+    resolve_environment,
+    resolve_operation,
+)
 from migchain.presentation.plain import PlainPresenter
 
 try:
@@ -33,6 +38,7 @@ def main() -> None:
     args = parser.parse_args()
 
     operation = resolve_operation(args)
+    resolve_environment(args, operation)
     config = build_config(args)
     presenter = _create_presenter()
 

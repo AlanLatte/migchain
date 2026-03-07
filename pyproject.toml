@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Database migration management tool with dependency graph analysis, phased execution, and batch tracking for yoyo-migrations"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 authors = [{ name = "AlanLatte" }]
 keywords = ["migrations", "database", "postgresql", "yoyo", "cli"]
 classifiers = [
