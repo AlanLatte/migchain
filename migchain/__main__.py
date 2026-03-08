@@ -6,7 +6,12 @@ from migchain.infrastructure.batch_tracker import PostgresBatchTracker
 from migchain.infrastructure.migration_writer import FilesystemMigrationWriter
 from migchain.infrastructure.yoyo_backend import YoyoBackendAdapter
 from migchain.infrastructure.yoyo_discovery import YoyoDiscoveryAdapter
-from migchain.presentation.cli import build_config, create_parser, resolve_operation
+from migchain.presentation.cli import (
+    build_config,
+    create_parser,
+    resolve_environment,
+    resolve_operation,
+)
 from migchain.presentation.plain import PlainPresenter
 
 try:
@@ -31,10 +36,11 @@ def main() -> None:
     """Wire adapters and run the migration service."""
     parser = create_parser()
     args = parser.parse_args()
-
-    operation = resolve_operation(args)
-    config = build_config(args)
     presenter = _create_presenter()
+
+    operation = resolve_operation(args, presenter)
+    resolve_environment(args, operation, presenter)
+    config = build_config(args, operation)
 
     schema_comparator = None
     migration_writer = None

@@ -1,20 +1,20 @@
-"""resolve_operation -- fallback to 'apply' when InquirerPy unavailable.
+"""resolve_operation -- fallback to 'apply' without presenter.
 
-- _HAS_INQUIRER=False + no flags -> returns "apply"
+- no presenter + no flags -> returns "apply"
+- presenter returns None (no TTY) -> returns "apply"
 """
 
 import argparse
-from unittest.mock import patch
+from unittest.mock import MagicMock
 
 from migchain.presentation.cli import resolve_operation
 
 
-class TestNoInquirerFallback:
-    """Protects against crash when InquirerPy is not installed."""
+class TestFallbackToApply:
+    """Protects against crash when no interactive selection is possible."""
 
-    @patch("migchain.presentation.cli._HAS_INQUIRER", False)
-    def test_returns_apply_without_inquirer(self):
-        """Protects against unhandled state when no flags and no InquirerPy."""
+    def test_returns_apply_without_presenter(self):
+        """Protects against unhandled state when no flags and no presenter."""
         args = argparse.Namespace(
             apply=False,
             rollback=False,
@@ -25,5 +25,23 @@ class TestNoInquirerFallback:
             new=False,
         )
         result = resolve_operation(args)
+
+        assert result == "apply"
+
+    def test_returns_apply_when_presenter_returns_none(self):
+        """Protects against crash when presenter has no TTY."""
+        presenter = MagicMock()
+        presenter.select_operation.return_value = None
+
+        args = argparse.Namespace(
+            apply=False,
+            rollback=False,
+            rollback_one=False,
+            rollback_latest=False,
+            reload=False,
+            optimize=False,
+            new=False,
+        )
+        result = resolve_operation(args, presenter)
 
         assert result == "apply"

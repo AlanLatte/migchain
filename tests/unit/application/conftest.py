@@ -2,7 +2,7 @@
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Set, Tuple
+from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple
 
 import pytest
 
@@ -156,6 +156,12 @@ class FakePresenter:
         self.errors = []
         self.debugs = []
 
+    def select_operation(self):
+        return None
+
+    def select_environment(self):
+        return None
+
     def setup(self, verbosity: int) -> None:
         self.setup_calls.append(verbosity)
 
@@ -225,7 +231,11 @@ class FakePresenter:
     def show_result(self, message: str) -> None:
         self.infos.append(message)
 
-    def prompt_scaffold(self, _existing_domains: list) -> ScaffoldRequest:
+    def prompt_scaffold(
+        self,
+        _existing_domains: list,
+        _domain_subdirectories: Mapping[str, List[str]],
+    ) -> ScaffoldRequest:
         return ScaffoldRequest(scaffold_type="domain", domain="test")
 
 

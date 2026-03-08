@@ -4,30 +4,10 @@ import argparse
 import os
 import textwrap
 from pathlib import Path
-from typing import Any, List, Set
+from typing import Any, Optional, Set
 
 from migchain.application.config import MigrationConfig
-from migchain.constants import DEFAULT_DOMAIN_LEVEL
-
-try:
-    from InquirerPy import inquirer
-    from InquirerPy.separator import Separator
-
-    OPERATION_CHOICES: List[Any] = [
-        {"name": "Apply pending migrations", "value": "apply"},
-        {"name": "Rollback all migrations", "value": "rollback"},
-        {"name": "Rollback one (safest leaf)", "value": "rollback-one"},
-        {"name": "Rollback latest batch", "value": "rollback-latest"},
-        Separator(),
-        {"name": "Full reload (rollback + apply)", "value": "reload"},
-        {"name": "Optimize dependencies (transitive reduction)", "value": "optimize"},
-        Separator(),
-        {"name": "Create new migration", "value": "new"},
-    ]
-    _HAS_INQUIRER = True
-except ImportError:  # pragma: no cover
-    _HAS_INQUIRER = False
-    OPERATION_CHOICES = []
+from migchain.constants import DB_OPERATIONS, DEFAULT_DOMAIN_LEVEL
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -131,8 +111,12 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def resolve_operation(args: argparse.Namespace) -> str:
-    """Determine operation mode — interactive if none specified."""
+# ::::: Operation resolution :::::
+def resolve_operation(
+    args: argparse.Namespace,
+    presenter: Any = None,
+) -> str:
+    """Determine operation mode — delegates to presenter if no flag."""
     if args.rollback:
         return "rollback"
     if args.rollback_one:
@@ -148,21 +132,50 @@ def resolve_operation(args: argparse.Namespace) -> str:
     if args.apply:
         return "apply"
 
-    if not _HAS_INQUIRER:
-        return "apply"
+    if presenter is not None:
+        result: Optional[str] = presenter.select_operation()
+        if result is not None:
+            return result
 
-    result: str = inquirer.select(
-        message="Select operation:",
-        choices=OPERATION_CHOICES,
-        default="apply",
-    ).execute()
-    return result
+    return "apply"
 
 
-def build_config(args: argparse.Namespace) -> MigrationConfig:
-    """Build MigrationConfig from parsed args + env vars."""
+# ::::: Environment resolution :::::
+def resolve_environment(
+    args: argparse.Namespace,
+    operation: str,
+    presenter: Any = None,
+) -> None:
+    """Prompt for testing/gw settings via presenter."""
+    if operation not in DB_OPERATIONS:
+        return
+    if args.testing or args.dry_run:
+        return
+    if presenter is None:
+        return
+
+    env: Optional[str] = presenter.select_environment()
+    if env is None or env == "production":
+        return
+
+    args.testing = True
+    if env == "testing-gw":
+        gw_input = input("  Number of gateway databases [4]: ").strip() or "4"
+        args.gw_count = int(gw_input)
+        template = input("  Gateway DB name template [test_db__gw{i}]: ").strip()
+        if template:
+            args.gw_template = template
+
+
+# ::::: Config builder :::::
+def build_config(
+    args: argparse.Namespace,
+    operation: str = "",
+) -> MigrationConfig:
+    """Build MigrationConfig from parsed args + resolved operation."""
     dsn = args.dsn or os.environ.get("DATABASE_URL", "")
-    if not dsn and not args.dry_run and not args.optimize and not args.new:
+    needs_dsn = operation not in ("new", "optimize") and not args.dry_run
+    if not dsn and needs_dsn:
         raise SystemExit(
             "Database connection string required. "
             "Use --dsn or set DATABASE_URL environment variable.",
@@ -184,7 +197,7 @@ def build_config(args: argparse.Namespace) -> MigrationConfig:
         exclude_domains = {d.strip() for d in args.exclude.split(",")}
 
     migrations_root = Path(args.migrations_dir).resolve()
-    if args.new:
+    if operation == "new":
         migrations_root.mkdir(parents=True, exist_ok=True)
     elif not migrations_root.is_dir():
         raise SystemExit(f"Migrations directory not found: {migrations_root}")

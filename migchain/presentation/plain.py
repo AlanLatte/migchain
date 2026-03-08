@@ -3,7 +3,7 @@
 import logging
 import textwrap
 from pathlib import Path
-from typing import Optional
+from typing import List, Mapping, Optional
 
 from migchain.constants import LOGGER_NAME
 from migchain.domain.analyzer import MigrationAnalyzer
@@ -15,6 +15,7 @@ from migchain.domain.models import (
 )
 from migchain.domain.scaffolder import ScaffoldRequest
 from migchain.infrastructure.logging import setup_logging
+from migchain.presentation.menu import ENVIRONMENT_MENU, OPERATION_MENU, key_menu
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 
@@ -119,6 +120,12 @@ class PlainPresenter:
         LOGGER.info("Done.")
 
     # ::::: Interactive :::::
+    def select_operation(self) -> Optional[str]:
+        return key_menu(OPERATION_MENU, "MigChain")
+
+    def select_environment(self) -> Optional[str]:
+        return key_menu(ENVIRONMENT_MENU, "Environment")
+
     def confirm(self, message: str) -> bool:
         answer = input(f"  {message} [y/N]: ").strip().lower()
         return answer in ("y", "yes")
@@ -164,7 +171,11 @@ class PlainPresenter:
             )
 
     # ::::: Scaffolding :::::
-    def prompt_scaffold(self, existing_domains: list[str]) -> ScaffoldRequest:
+    def prompt_scaffold(
+        self,
+        existing_domains: list[str],
+        domain_subdirectories: Mapping[str, List[str]],
+    ) -> ScaffoldRequest:
         LOGGER.info("Select migration type:")
         options = [
             ("1", "New domain (schema + directory)", "domain"),
@@ -186,7 +197,30 @@ class PlainPresenter:
         if existing_domains:
             LOGGER.info("Existing domains: %s", ", ".join(existing_domains))
         domain = input("Domain name: ").strip()
-        subdirectory = input("Subdirectory (e.g. users, roles): ").strip()
+
+        existing_subdirs = domain_subdirectories.get(domain, [])
+        if existing_subdirs:
+            LOGGER.info("Existing subdirectories:")
+            for i, sd in enumerate(existing_subdirs, 1):
+                LOGGER.info("  %d. %s", i, sd)
+            LOGGER.info("  %d. (enter manually)", len(existing_subdirs) + 1)
+            LOGGER.info("  %d. (root)", len(existing_subdirs) + 2)
+            sd_choice = input("Subdirectory: ").strip()
+            try:
+                idx = int(sd_choice) - 1
+                if idx == len(existing_subdirs):
+                    subdirectory = input("Subdirectory name: ").strip()
+                elif idx == len(existing_subdirs) + 1:
+                    subdirectory = ""
+                elif 0 <= idx < len(existing_subdirs):
+                    subdirectory = existing_subdirs[idx]
+                else:
+                    subdirectory = sd_choice
+            except ValueError:
+                subdirectory = sd_choice
+        else:
+            subdirectory = input("Subdirectory (e.g. users, roles): ").strip()
+
         description = input("Description (e.g. create-table, add-index): ").strip()
 
         return ScaffoldRequest(
@@ -204,10 +238,10 @@ class PlainPresenter:
     def info(self, message: str) -> None:
         LOGGER.info(message)
 
-    def warning(self, message: str) -> None:  # pragma: no cover
+    def warning(self, message: str) -> None:
         LOGGER.warning(message)
 
-    def error(self, message: str) -> None:  # pragma: no cover
+    def error(self, message: str) -> None:
         border = "=" * 60
         wrapped = textwrap.fill(message, width=56)
         LOGGER.error("%s\n%s\n%s", border, wrapped, border)

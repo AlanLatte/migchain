@@ -1,7 +1,7 @@
 """Adapter: Rich console presenter."""
 
 from pathlib import Path
-from typing import Optional
+from typing import List, Mapping, Optional
 
 from InquirerPy import inquirer
 from rich.console import Console
@@ -27,6 +27,7 @@ from migchain.domain.models import (
 )
 from migchain.domain.scaffolder import ScaffoldRequest
 from migchain.infrastructure.logging import setup_logging
+from migchain.presentation.menu import ENVIRONMENT_MENU, OPERATION_MENU, key_menu
 
 
 class RichPresenter:
@@ -164,6 +165,12 @@ class RichPresenter:
             self._progress = None
 
     # ::::: Interactive :::::
+    def select_operation(self) -> Optional[str]:
+        return key_menu(OPERATION_MENU, "MigChain")
+
+    def select_environment(self) -> Optional[str]:
+        return key_menu(ENVIRONMENT_MENU, "Environment")
+
     def confirm(self, message: str) -> bool:
         result: bool = inquirer.confirm(message=message, default=False).execute()
         return result
@@ -235,7 +242,11 @@ class RichPresenter:
             )
 
     # ::::: Scaffolding :::::
-    def prompt_scaffold(self, existing_domains: list[str]) -> ScaffoldRequest:
+    def prompt_scaffold(
+        self,
+        existing_domains: list[str],
+        domain_subdirectories: Mapping[str, List[str]],
+    ) -> ScaffoldRequest:
         scaffold_type: str = inquirer.select(
             message="What do you want to create?",
             choices=[
@@ -258,10 +269,25 @@ class RichPresenter:
         if selected == "(enter manually)":
             selected = inquirer.text(message="Domain name:").execute()
 
-        subdirectory: str = inquirer.text(
-            message="Subdirectory (e.g. users, roles):",
-            default="",
-        ).execute()
+        subdirectory = ""
+        existing_subdirs = domain_subdirectories.get(selected, [])
+        if existing_subdirs:
+            subdir_choices = existing_subdirs + ["(enter manually)", "(root)"]
+            chosen_subdir: str = inquirer.select(
+                message="Subdirectory:",
+                choices=subdir_choices,
+            ).execute()
+            if chosen_subdir == "(enter manually)":
+                subdirectory = inquirer.text(
+                    message="Subdirectory name:",
+                ).execute()
+            elif chosen_subdir != "(root)":
+                subdirectory = chosen_subdir
+        else:
+            subdirectory = inquirer.text(
+                message="Subdirectory (e.g. users, roles):",
+                default="",
+            ).execute()
 
         description: str = inquirer.text(
             message="Description (e.g. create-table, add-index):",

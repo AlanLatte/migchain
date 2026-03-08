@@ -2,7 +2,7 @@
 
 from contextlib import AbstractContextManager
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol, Sequence, Set, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence, Set, Tuple
 
 from migchain.domain.models import (
     MigrationPlan,
@@ -115,6 +115,10 @@ class Presenter(Protocol):
     def finish_execution(self) -> None: ...
 
     # ::::: Interactive :::::
+    def select_operation(self) -> Optional[str]: ...
+
+    def select_environment(self) -> Optional[str]: ...
+
     def confirm(self, message: str) -> bool: ...
 
     # ::::: Logging :::::
@@ -135,7 +139,11 @@ class Presenter(Protocol):
     ) -> None: ...
 
     # ::::: Scaffolding :::::
-    def prompt_scaffold(self, existing_domains: List[str]) -> ScaffoldRequest: ...
+    def prompt_scaffold(
+        self,
+        existing_domains: List[str],
+        domain_subdirectories: Mapping[str, List[str]],
+    ) -> ScaffoldRequest: ...
 
 
 class SchemaComparator(Protocol):
