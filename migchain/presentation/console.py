@@ -27,6 +27,7 @@ from migchain.domain.models import (
 )
 from migchain.domain.scaffolder import ScaffoldRequest
 from migchain.infrastructure.logging import setup_logging
+from migchain.presentation.menu import ENVIRONMENT_MENU, OPERATION_MENU, key_menu
 
 
 class RichPresenter:
@@ -164,6 +165,12 @@ class RichPresenter:
             self._progress = None
 
     # ::::: Interactive :::::
+    def select_operation(self) -> Optional[str]:
+        return key_menu(OPERATION_MENU, "MigChain")
+
+    def select_environment(self) -> Optional[str]:
+        return key_menu(ENVIRONMENT_MENU, "Environment")
+
     def confirm(self, message: str) -> bool:
         result: bool = inquirer.confirm(message=message, default=False).execute()
         return result

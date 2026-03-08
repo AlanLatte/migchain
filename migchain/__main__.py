@@ -36,11 +36,11 @@ def main() -> None:
     """Wire adapters and run the migration service."""
     parser = create_parser()
     args = parser.parse_args()
-
-    operation = resolve_operation(args)
-    resolve_environment(args, operation)
-    config = build_config(args)
     presenter = _create_presenter()
+
+    operation = resolve_operation(args, presenter)
+    resolve_environment(args, operation, presenter)
+    config = build_config(args, operation)
 
     schema_comparator = None
     migration_writer = None

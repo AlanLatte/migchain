@@ -15,6 +15,7 @@ from migchain.domain.models import (
 )
 from migchain.domain.scaffolder import ScaffoldRequest
 from migchain.infrastructure.logging import setup_logging
+from migchain.presentation.menu import ENVIRONMENT_MENU, OPERATION_MENU, key_menu
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 
@@ -119,6 +120,12 @@ class PlainPresenter:
         LOGGER.info("Done.")
 
     # ::::: Interactive :::::
+    def select_operation(self) -> Optional[str]:
+        return key_menu(OPERATION_MENU, "MigChain")
+
+    def select_environment(self) -> Optional[str]:
+        return key_menu(ENVIRONMENT_MENU, "Environment")
+
     def confirm(self, message: str) -> bool:
         answer = input(f"  {message} [y/N]: ").strip().lower()
         return answer in ("y", "yes")
@@ -231,10 +238,10 @@ class PlainPresenter:
     def info(self, message: str) -> None:
         LOGGER.info(message)
 
-    def warning(self, message: str) -> None:  # pragma: no cover
+    def warning(self, message: str) -> None:
         LOGGER.warning(message)
 
-    def error(self, message: str) -> None:  # pragma: no cover
+    def error(self, message: str) -> None:
         border = "=" * 60
         wrapped = textwrap.fill(message, width=56)
         LOGGER.error("%s\n%s\n%s", border, wrapped, border)

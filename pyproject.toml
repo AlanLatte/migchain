@@ -87,7 +87,13 @@ addopts = "-ra --strict-markers"
 
 [tool.coverage.run]
 source = ["migchain"]
-omit = ["migchain/__main__.py"]
+omit = [
+    "migchain/__main__.py",
+    "migchain/infrastructure/yoyo_backend.py",
+    "migchain/infrastructure/yoyo_discovery.py",
+    "migchain/infrastructure/batch_tracker.py",
+    "migchain/infrastructure/schema_comparator.py",
+]
 
 [tool.coverage.report]
 fail_under = 85

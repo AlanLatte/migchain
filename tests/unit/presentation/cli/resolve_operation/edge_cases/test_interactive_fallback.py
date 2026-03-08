@@ -1,11 +1,11 @@
-"""resolve_operation -- interactive fallback via InquirerPy.
+"""resolve_operation -- interactive fallback via presenter.
 
-- no flags set -> launches interactive select
+- no flags set -> delegates to presenter.select_operation()
 - returns the value chosen by user
 """
 
 import argparse
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from migchain.presentation.cli import resolve_operation
 
@@ -13,12 +13,10 @@ from migchain.presentation.cli import resolve_operation
 class TestInteractiveFallback:
     """Protects the interactive fallback when no operation flag is provided."""
 
-    @patch("migchain.presentation.cli.inquirer")
-    def test_no_flags_triggers_interactive(self, mock_inquirer):
+    def test_no_flags_delegates_to_presenter(self):
         """Protects against silent default when user specifies no operation."""
-        mock_prompt = MagicMock()
-        mock_prompt.execute.return_value = "rollback"
-        mock_inquirer.select.return_value = mock_prompt
+        presenter = MagicMock()
+        presenter.select_operation.return_value = "rollback"
 
         args = argparse.Namespace(
             apply=False,
@@ -29,7 +27,7 @@ class TestInteractiveFallback:
             optimize=False,
             new=False,
         )
-        result = resolve_operation(args)
+        result = resolve_operation(args, presenter)
 
         assert result == "rollback"
-        mock_inquirer.select.assert_called_once()
+        presenter.select_operation.assert_called_once()

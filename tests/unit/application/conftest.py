@@ -156,6 +156,12 @@ class FakePresenter:
         self.errors = []
         self.debugs = []
 
+    def select_operation(self):
+        return None
+
+    def select_environment(self):
+        return None
+
     def setup(self, verbosity: int) -> None:
         self.setup_calls.append(verbosity)
 
